@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Search — Lexicon Shaper{% endblock %}
+{% block content %}
+
+{% if error %}
+  <div class="alert alert-error" role="alert">{{ error }}</div>
+{% endif %}
+{% if info %}
+  <div class="alert alert-info" role="status">{{ info }}</div>
+{% endif %}
+
+<form class="search-form" method="post" action="/search" id="search-form">
+  <fieldset class="panel">
+    <legend>Direction</legend>
+    <label for="theme">Theme <span class="req">(required)</span></label>
+    <input type="text" id="theme" name="theme" value="{{ values.theme }}" placeholder="e.g. horror, slow autumn, longing" autocomplete="off" required>
+
+    <label for="topics">Extra topics <span class="hint">optional</span></label>
+    <input type="text" id="topics" name="topics" value="{{ values.topics }}" placeholder="Comma-separated nudge, e.g. night, fear" autocomplete="off">
+  </fieldset>
+
+  <fieldset class="panel">
+    <legend>Spelling shape</legend>
+    <p class="help-block">Use one <strong>raw pattern</strong> <em>or</em> the helpers below. In patterns, <code>*</code> is any stretch of letters; <code>?</code> is one letter.</p>
+
+    <label for="spelling_pattern">Raw pattern</label>
+    <input type="text" id="spelling_pattern" name="spelling_pattern" value="{{ values.spelling_pattern }}" placeholder="e.g. s*ike, *ight, h???" autocomplete="off">
+
+    <div class="row">
+      <div>
+        <label for="starts_with">Starts with</label>
+        <input type="text" id="starts_with" name="starts_with" value="{{ values.starts_with }}" placeholder="s" maxlength="32" autocomplete="off">
+      </div>
+      <div>
+        <label for="contains">Contains</label>
+        <input type="text" id="contains" name="contains" value="{{ values.contains }}" placeholder="oo" maxlength="32" autocomplete="off">
+      </div>
+      <div>
+        <label for="ends_with">Ends with</label>
+        <input type="text" id="ends_with" name="ends_with" value="{{ values.ends_with }}" placeholder="ike" maxlength="32" autocomplete="off">
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="panel">
+    <legend>Sound</legend>
+    <p class="help-block">Optional. <strong>Rhyme</strong> and <strong>sounds like</strong> add extra constraints; very tight combinations may return fewer hits.</p>
+    <div class="row">
+      <div>
+        <label for="rhyme_with">Rhymes with</label>
+        <input type="text" id="rhyme_with" name="rhyme_with" value="{{ values.rhyme_with }}" placeholder="night" autocomplete="off">
+      </div>
+      <div>
+        <label for="sounds_like">Sounds like</label>
+        <input type="text" id="sounds_like" name="sounds_like" value="{{ values.sounds_like }}" placeholder="eerie" autocomplete="off">
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="panel panel-inline">
+    <legend>Refine</legend>
+    <div class="row row-wrap">
+      <div>
+        <label for="max_results">Max results</label>
+        <input type="number" id="max_results" name="max_results" min="1" max="100" value="{{ values.max_results }}">
+      </div>
+      <div>
+        <label for="pos_filter">Part of speech</label>
+        <select id="pos_filter" name="pos_filter">
+          <option value="" {% if not values.pos_filter %}selected{% endif %}>Any</option>
+          <option value="n" {% if values.pos_filter == 'n' %}selected{% endif %}>Noun</option>
+          <option value="v" {% if values.pos_filter == 'v' %}selected{% endif %}>Verb</option>
+          <option value="adj" {% if values.pos_filter == 'adj' %}selected{% endif %}>Adjective</option>
+          <option value="adv" {% if values.pos_filter == 'adv' %}selected{% endif %}>Adverb</option>
+        </select>
+      </div>
+      <label class="checkbox-label">
+        <input type="checkbox" name="prefer_common" value="on" {% if values.prefer_common %}checked{% endif %}>
+        Prefer more common words (sort by corpus frequency)
+      </label>
+    </div>
+  </fieldset>
+
+  <div class="form-actions">
+    <button type="submit" class="btn-primary" id="submit-btn">Find words</button>
+  </div>
+</form>
+
+{% if comparison %}
+  <section class="results comparison-results" aria-live="polite">
+    <h2 class="comparison-heading">Results</h2>
+    <div class="comparison-banks">
+      <div class="bank-panel">
+        <div class="bank-toolbar">
+          <span class="count">({{ results_left|length }})</span>
+          <div class="results-actions">
+            <button type="button" class="btn-secondary copy-words-btn" id="copy-words-1" data-table="#results-table-1">Copy words</button>
+            <button type="button" class="btn-secondary copy-tsv-btn" id="copy-tsv-1" data-table="#results-table-1">Copy table (TSV)</button>
+          </div>
+        </div>
+        {% if results_left %}
+          <div class="table-wrap">
+            <table class="word-table" id="results-table-1">
+              <thead>
+                <tr>
+                  <th scope="col">Word</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Syllables</th>
+                  <th scope="col">Frequency</th>
+                  <th scope="col">Tags</th>
+                  <th scope="col">Definition</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in results_left %}
+                  <tr>
+                    <td class="word-cell">{{ row.word }}</td>
+                    <td>{{ row.score if row.score is not none else '—' }}</td>
+                    <td>{{ row.syllables if row.syllables is not none else '—' }}</td>
+                    <td>{{ '%.2f'|format(row.frequency) if row.frequency is not none else '—' }}</td>
+                    <td class="tags-cell">{{ row.tags | join(', ') if row.tags else '—' }}</td>
+                    <td class="def-cell">
+                      {% if row.defs %}
+                        {% for d in row.defs[:2] %}
+                          <div>{{ d }}</div>
+                        {% endfor %}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="empty-results">No words matched for this column.</p>
+        {% endif %}
+      </div>
+
+      <div class="bank-panel">
+        <div class="bank-toolbar">
+          <span class="count">({{ results_right|length }})</span>
+          <div class="results-actions">
+            <button type="button" class="btn-secondary copy-words-btn" id="copy-words-2" data-table="#results-table-2">Copy words</button>
+            <button type="button" class="btn-secondary copy-tsv-btn" id="copy-tsv-2" data-table="#results-table-2">Copy table (TSV)</button>
+          </div>
+        </div>
+        {% if results_right %}
+          <div class="table-wrap">
+            <table class="word-table" id="results-table-2">
+              <thead>
+                <tr>
+                  <th scope="col">Word</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Syllables</th>
+                  <th scope="col">Frequency</th>
+                  <th scope="col">Tags</th>
+                  <th scope="col">Definition</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in results_right %}
+                  <tr>
+                    <td class="word-cell">{{ row.word }}</td>
+                    <td>{{ row.score if row.score is not none else '—' }}</td>
+                    <td>{{ row.syllables if row.syllables is not none else '—' }}</td>
+                    <td>{{ '%.2f'|format(row.frequency) if row.frequency is not none else '—' }}</td>
+                    <td class="tags-cell">{{ row.tags | join(', ') if row.tags else '—' }}</td>
+                    <td class="def-cell">
+                      {% if row.defs %}
+                        {% for d in row.defs[:2] %}
+                          <div>{{ d }}</div>
+                        {% endfor %}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="empty-results">No words matched for this column.</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+{% endif %}
+
+{% endblock %}

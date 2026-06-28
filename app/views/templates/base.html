@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Lexicon Shaper{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='style.css') }}">
+</head>
+<body>
+  <div class="brand-bar"></div>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1><a href="/">Lexicon Shaper</a></h1>
+      <p class="tagline">Theme plus shape — not random dictionary pulls.</p>
+    </div>
+  </header>
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <p>Word data combines the <a href="https://www.datamuse.com/api/" rel="noopener noreferrer">Datamuse API</a> with <a href="https://en.wiktionary.org/" rel="noopener noreferrer">Wiktionary</a> (<a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener noreferrer">CC BY-SA</a>). English-focused; results are suggestions to curate.</p>
+  </footer>
+  <script src="{{ request.url_for('static', path='app.js') }}" defer></script>
+</body>
+</html>
